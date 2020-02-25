@@ -6,7 +6,6 @@ from flask import Flask,render_template,request,url_for,redirect,flash
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.secret_key = 'Bruce'
 
 WIN = sys.platform.startswith('win')
 if WIN:
@@ -17,6 +16,7 @@ else:
 # 配置
 app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path,'data.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # 关闭对模型修改的监控
+app.config['SECRET_KEY'] = 'dev'
 
 db = SQLAlchemy(app)
 
@@ -63,6 +63,8 @@ def forge():
         db.session.add(movie)
     db.session.commit()
     click.echo('数据导入完成')
+
+# 首页
 @app.route('/',methods=['GET','POST'])
 def index():
     if request.method == 'POST':
@@ -83,6 +85,35 @@ def index():
 
     movies = Movie.query.all()
     return render_template('index.html',movies=movies)
+# 编辑电影信息页面
+@app.route('/movie/edit/<int:movie_id>',methods=['GET','POST'])
+def edit(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+
+    if request.method == 'POST':
+        title = request.form['title']
+        year = request.form['year']
+
+        if not title or not year or len(year)>4 or len(title)>60:
+            flash('输入错误')
+            return redirect(url_for('edit'),movie_id=movie_id)
+        
+        movie.title = title
+        movie.year = year
+        db.session.commit()
+        flash('电影信息已经更新')
+        return redirect(url_for('index'))
+    return render_template('edit.html',movie=movie)
+# 删除信息
+@app.route('/movie/delete/<int:movie_id>',methods=['POST'])
+def delete(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    db.session.delete(movie)
+    db.session.commit()
+    flash('删除数据成功')
+    return redirect(url_for('index'))
+
+
 
 @app.errorhandler(404) # 传入要处理的错误代码
 def page_not_found(e):
@@ -92,6 +123,5 @@ def page_not_found(e):
 def inject_user():
     user = User.query.first()
     return dict(user=user)
-
 if __name__ == "__main__":
     app.run()
