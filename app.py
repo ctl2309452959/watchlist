@@ -1,5 +1,5 @@
 import os
-
+import sys
 
 from flask import Flask
 from flask import render_template
@@ -7,8 +7,14 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
+WIN = sys.platform.startswith('win')
+if WIN:
+    prefix = 'sqlite:///'  # 如果是windows操作系统，是三个斜杠
+else:
+    prefix = 'sqlite:////' # 如果是Mac，Linux，是四个斜杠
+
 # 配置
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////' + os.path.join(app.root_path,'data.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path,'data.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # 关闭对模型修改的监控
 
 
